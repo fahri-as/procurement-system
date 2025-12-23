@@ -4,11 +4,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
 	"procurement-system/config"
 	"procurement-system/models"
 	"procurement-system/routes"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 func main() {
@@ -40,9 +42,19 @@ func main() {
 
 	// Middleware
 	app.Use(logger.New())
+	
+	// CORS middleware - allow all origins for development
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
+	}))
 
-	// Register routes
+	// Register API routes first (before static files)
 	routes.RegisterRoutes(app, config.DB)
+
+	// Serve static files (HTML, CSS, JS) - must be after API routes
+	app.Static("/", "./static")
 
 	// 404 handler
 	app.Use(func(c *fiber.Ctx) error {
