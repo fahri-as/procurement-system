@@ -9,6 +9,7 @@ Setelah transaksi purchasing berhasil di-commit ke database, sistem akan mengiri
 Webhook URL dapat dikonfigurasi melalui 2 cara:
 
 1. **Environment Variable** (disarankan):
+
    ```bash
    WEBHOOK_URL=https://your-webhook-server.com/api/purchasing
    ```
@@ -23,6 +24,7 @@ Webhook URL dapat dikonfigurasi melalui 2 cara:
 Sistem akan mengirim POST request dengan format JSON berikut:
 
 ### Headers
+
 ```
 Content-Type: application/json
 User-Agent: Procurement-System/1.0
@@ -90,12 +92,14 @@ User-Agent: Procurement-System/1.0
 **POST** `https://your-webhook-server.com/api/purchasing`
 
 **Headers:**
+
 ```
 Content-Type: application/json
 User-Agent: Procurement-System/1.0
 ```
 
 **Body:**
+
 ```json
 {
   "event": "purchasing.created",
@@ -157,6 +161,7 @@ Webhook server sebaiknya mengembalikan response HTTP status code:
 - **Lainnya**: Akan di-log sebagai warning, tapi tidak akan mempengaruhi transaksi
 
 Contoh response yang baik:
+
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -179,19 +184,19 @@ Content-Type: application/json
 ```go
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
     var payload WebhookPayload
-    
+
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         http.Error(w, "Invalid JSON", http.StatusBadRequest)
         return
     }
-    
+
     // Process the purchasing data
     log.Printf("Received purchasing event: %s", payload.Event)
-    log.Printf("Purchasing ID: %d, Grand Total: %s", 
+    log.Printf("Purchasing ID: %d, Grand Total: %s",
         payload.Purchasing.ID, payload.Purchasing.GrandTotal)
-    
+
     // Your business logic here...
-    
+
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(map[string]string{
         "status": "received",
@@ -213,4 +218,3 @@ Untuk testing webhook di local development:
    ```bash
    WEBHOOK_URL=https://abc123.ngrok.io/api/webhook
    ```
-

@@ -161,7 +161,10 @@ $(document).ready(function() {
                 if (!response || !response.token) {
                     console.error('Invalid response structure:', response);
                     setLoading(false);
-                    showError('Response dari server tidak valid. Token tidak ditemukan.');
+                    Notification.error(
+                        'Response Tidak Valid',
+                        'Response dari server tidak valid. Token tidak ditemukan.'
+                    );
                     return;
                 }
 
@@ -172,8 +175,8 @@ $(document).ready(function() {
                         Auth.saveUser(response.user);
                     }
 
-                    // Show success message
-                    showSuccess('Login berhasil! Mengalihkan...');
+                    // Show success notification
+                    Notification.success('Login Berhasil', 'Mengalihkan ke dashboard...', 1000);
 
                     // Redirect to dashboard or home page
                     setTimeout(() => {
@@ -182,7 +185,10 @@ $(document).ready(function() {
                 } catch (error) {
                     console.error('Error saving auth data:', error);
                     setLoading(false);
-                    showError('Gagal menyimpan data autentikasi: ' + error.message);
+                    Notification.error(
+                        'Gagal Menyimpan Data',
+                        'Gagal menyimpan data autentikasi: ' + error.message
+                    );
                 }
             },
             error: function(xhr, textStatus, errorThrown) {
@@ -233,7 +239,13 @@ $(document).ready(function() {
                     }
                 }
 
-                showError(errorMsg);
+                // Show error notification
+                Notification.error(
+                    'Login Gagal',
+                    errorMsg,
+                    errorDetail || ''
+                );
+                
                 if (errorDetail) {
                     console.error('Error detail:', errorDetail);
                 }

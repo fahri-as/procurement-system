@@ -78,6 +78,15 @@ const CreatePurchaseController = {
                 self.addToCart();
             }
         });
+
+        // Event delegation for remove item buttons (works with dynamically created elements)
+        $(document).on('click', '.remove-item-btn', function(e) {
+            e.preventDefault();
+            const itemId = parseInt($(this).data('item-id'));
+            if (itemId) {
+                self.removeFromCart(itemId);
+            }
+        });
     },
 
     /**
@@ -108,7 +117,11 @@ const CreatePurchaseController = {
             this.populateSuppliers();
             this.populateItems();
         } catch (error) {
-            this.showError('Gagal memuat data: ' + error.message);
+            Notification.error(
+                'Gagal Memuat Data',
+                error.message,
+                error.detail || ''
+            );
         }
     },
 
@@ -187,7 +200,7 @@ const CreatePurchaseController = {
         const item = this.items.find(i => i.id === itemId);
 
         if (!item) {
-            this.showError('Item tidak ditemukan');
+            Notification.error('Item Tidak Ditemukan', 'Item yang dipilih tidak tersedia dalam sistem');
             return;
         }
 
@@ -282,12 +295,6 @@ const CreatePurchaseController = {
 
             // Update grand total
             $('#grandTotal').text(this.formatCurrency(grandTotal));
-
-            // Attach remove button handlers
-            $('.remove-item-btn').on('click', (e) => {
-                const itemId = parseInt($(e.currentTarget).data('item-id'));
-                this.removeFromCart(itemId);
-            });
         }
     },
 
@@ -325,7 +332,7 @@ const CreatePurchaseController = {
 
         // Validate cart is not empty
         if (this.cart.length === 0) {
-            this.showError('Keranjang tidak boleh kosong');
+            Notification.warning('Keranjang Kosong', 'Tambahkan minimal satu item ke keranjang sebelum submit order');
             return;
         }
 
@@ -358,7 +365,11 @@ const CreatePurchaseController = {
             // Reset form
             this.resetForm();
         } catch (error) {
-            this.showError('Gagal membuat purchase order: ' + error.message);
+            Notification.error(
+                'Gagal Membuat Purchase Order',
+                error.message,
+                error.detail || ''
+            );
         } finally {
             // Reset button state
             $('#submitOrderBtn').prop('disabled', false).html(`
@@ -383,14 +394,6 @@ const CreatePurchaseController = {
         }).format(amount);
     },
 
-    /**
-     * Show error message
-     * @param {string} message - Error message
-     */
-    showError(message) {
-        alert(message); // Simple alert, can be replaced with better UI
-        console.error(message);
-    }
 };
 
 // Initialize when DOM is ready

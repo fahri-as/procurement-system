@@ -1,6 +1,7 @@
 /**
  * API Service
  * Handles all API requests with JWT authentication
+ * Uses reusable AJAX wrapper for clean code
  */
 const ApiService = {
   /**
@@ -61,26 +62,59 @@ const ApiService = {
   },
 
   /**
+   * Reusable AJAX wrapper function
+   * Automatically handles authentication headers and error handling
+   * @param {Object} options - AJAX options
+   * @param {string} options.url - Request URL
+   * @param {string} options.method - HTTP method (GET, POST, PUT, DELETE)
+   * @param {Object} options.data - Request data (optional)
+   * @param {Function} options.onSuccess - Success callback (optional)
+   * @param {Function} options.onError - Error callback (optional)
+   * @returns {Promise} Promise that resolves with response data
+   */
+  request(options) {
+    const self = this;
+    const { url, method = "GET", data = null, onSuccess = null, onError = null } = options;
+
+    return new Promise((resolve, reject) => {
+      const ajaxOptions = {
+        url: url,
+        method: method,
+        headers: self.getHeaders(),
+        timeout: ApiConfig.timeout,
+        success: function (response) {
+          if (onSuccess) {
+            onSuccess(response);
+          }
+          resolve(response);
+        },
+        error: function (xhr) {
+          const error = self.handleError(xhr);
+          if (onError) {
+            onError(error);
+          }
+          reject(error);
+        },
+      };
+
+      // Add data if provided
+      if (data !== null) {
+        ajaxOptions.data = JSON.stringify(data);
+      }
+
+      $.ajax(ajaxOptions);
+    });
+  },
+
+  /**
    * Get all items from API
    * @returns {Promise} Promise that resolves with items data
    */
   getItems() {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.items,
-        method: "GET",
-        headers: self.getHeaders(),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response.data || []);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
-    });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.items,
+      method: "GET",
+    }).then((response) => response.data || []);
   },
 
   /**
@@ -89,23 +123,11 @@ const ApiService = {
    * @returns {Promise} Promise that resolves with created item
    */
   createItem(itemData) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.items,
-        method: "POST",
-        headers: self.getHeaders(),
-        data: JSON.stringify(itemData),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response.data);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
-    });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.items,
+      method: "POST",
+      data: itemData,
+    }).then((response) => response.data);
   },
 
   /**
@@ -115,23 +137,11 @@ const ApiService = {
    * @returns {Promise} Promise that resolves with updated item
    */
   updateItem(itemId, itemData) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.items + "/" + itemId,
-        method: "PUT",
-        headers: self.getHeaders(),
-        data: JSON.stringify(itemData),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response.data);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
-    });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.items + "/" + itemId,
+      method: "PUT",
+      data: itemData,
+    }).then((response) => response.data);
   },
 
   /**
@@ -140,21 +150,9 @@ const ApiService = {
    * @returns {Promise} Promise that resolves on success
    */
   deleteItem(itemId) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.items + "/" + itemId,
-        method: "DELETE",
-        headers: self.getHeaders(),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.items + "/" + itemId,
+      method: "DELETE",
     });
   },
 
@@ -163,22 +161,10 @@ const ApiService = {
    * @returns {Promise} Promise that resolves with suppliers data
    */
   getSuppliers() {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.suppliers,
-        method: "GET",
-        headers: self.getHeaders(),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response.data || []);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
-    });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.suppliers,
+      method: "GET",
+    }).then((response) => response.data || []);
   },
 
   /**
@@ -187,22 +173,10 @@ const ApiService = {
    * @returns {Promise} Promise that resolves with created purchasing transaction
    */
   createPurchasing(purchasingData) {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      $.ajax({
-        url: ApiConfig.baseURL + ApiConfig.endpoints.purchasings,
-        method: "POST",
-        headers: self.getHeaders(),
-        data: JSON.stringify(purchasingData),
-        timeout: ApiConfig.timeout,
-        success: function (response) {
-          resolve(response);
-        },
-        error: function (xhr) {
-          const error = self.handleError(xhr);
-          reject(error);
-        },
-      });
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.purchasings,
+      method: "POST",
+      data: purchasingData,
     });
   },
 };

@@ -216,6 +216,8 @@ $(document).ready(function () {
       })
       .catch((error) => {
         showError(error.message, error.detail);
+        // Also show notification for better UX
+        Notification.error("Gagal Memuat Inventory", error.message, error.detail || "");
       });
   }
 
@@ -238,8 +240,10 @@ $(document).ready(function () {
   /**
    * Handle logout
    */
-  function handleLogout() {
-    if (confirm("Apakah Anda yakin ingin logout?")) {
+  async function handleLogout() {
+    const confirmed = await Notification.confirm("Konfirmasi Logout", "Apakah Anda yakin ingin logout?", "Ya, Logout", "Batal");
+
+    if (confirmed) {
       Auth.logout();
       window.location.href = "/login.html";
     }
