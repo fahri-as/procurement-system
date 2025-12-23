@@ -1,20 +1,20 @@
 package utils
 
-import (
-	"crypto/sha256"
-	"encoding/hex"
-)
+import "golang.org/x/crypto/bcrypt"
 
-// HashPassword returns a SHA-256 hash of the provided password.
-// Replace with bcrypt or Argon2 for production use.
-func HashPassword(password string) string {
-	sum := sha256.Sum256([]byte(password))
-	return hex.EncodeToString(sum[:])
+// HashPassword returns a bcrypt hash of the provided password
+func HashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
 }
 
-// CheckPassword compares a plaintext password with an expected SHA-256 hash.
-func CheckPassword(password string, expectedHash string) bool {
-	return HashPassword(password) == expectedHash
+// CheckPassword compares a plaintext password with a bcrypt hash
+func CheckPassword(password string, hashedPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+	return err == nil
 }
 
 
