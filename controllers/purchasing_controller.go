@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"procurement-system/config"
@@ -144,12 +143,12 @@ func (pc *PurchasingController) Create(c *fiber.Ctx) error {
 
 	// External Integration: Send webhook notification AFTER successful database commit
 	// Webhook is sent asynchronously (non-blocking) so it doesn't delay the HTTP response
-	// Webhook URL can be provided via:
-	// 1. HTTP Header: X-Webhook-URL
-	// 2. Environment Variable: WEBHOOK_URL
-	webhookURL := c.Get("X-Webhook-URL") // Optional: webhook URL from header
+	// Webhook URL priority:
+	// 1. HTTP Header: X-Webhook-URL (optional override)
+	// 2. Environment Variable: WEBHOOK_URL (default from config)
+	webhookURL := c.Get("X-Webhook-URL") // Optional: webhook URL from header (override)
 	if webhookURL == "" {
-		webhookURL = os.Getenv("WEBHOOK_URL") // Or from environment variable
+		webhookURL = config.WebhookURL // Use default from environment variable
 	}
 
 	if webhookURL != "" {

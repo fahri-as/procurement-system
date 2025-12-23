@@ -14,17 +14,26 @@ const DefaultPort = "8080"
 
 var DB *gorm.DB
 var JWTSecret string
+var WebhookURL string
 
 // LoadEnv loads environment variables from .env file
 func LoadEnv() {
-	if err := godotenv.Load("env"); err != nil {
-		log.Println("Warning: .env file not found, using system environment variables")
+	// Try loading from .env first (standard), then try "env" as fallback
+	if err := godotenv.Load(".env"); err != nil {
+		if err2 := godotenv.Load("env"); err2 != nil {
+			log.Println("Warning: .env or env file not found, using system environment variables")
+		}
 	}
 
 	JWTSecret = os.Getenv("JWT_SECRET")
 	if JWTSecret == "" {
 		JWTSecret = "changeme" // fallback to default
 		log.Println("Warning: JWT_SECRET not set, using default value")
+	}
+
+	WebhookURL = os.Getenv("WEBHOOK_URL")
+	if WebhookURL != "" {
+		log.Printf("Webhook URL loaded from environment: %s", WebhookURL)
 	}
 }
 
