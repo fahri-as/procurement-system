@@ -114,7 +114,7 @@ Ikuti langkah-langkah berikut secara berurutan untuk menjalankan aplikasi di kom
 Buka terminal dan jalankan perintah berikut:
 
 ```bash
-git clone https://github.com/username/procurement-system.git
+git clone https://github.com/fahri-as/procurement-system.git
 ```
 
 Masuk ke direktori proyek:
