@@ -169,6 +169,45 @@ const ApiService = {
   },
 
   /**
+   * Create a new supplier
+   * @param {Object} supplierData - Supplier payload (name, email, address)
+   * @returns {Promise} Promise that resolves with created supplier
+   */
+  createSupplier(supplierData) {
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.suppliers,
+      method: "POST",
+      data: supplierData,
+    }).then((response) => response.data);
+  },
+
+  /**
+   * Update an existing supplier
+   * @param {number} supplierId - Supplier ID
+   * @param {Object} supplierData - Updated supplier data
+   * @returns {Promise} Promise that resolves with updated supplier
+   */
+  updateSupplier(supplierId, supplierData) {
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.suppliers + "/" + supplierId,
+      method: "PUT",
+      data: supplierData,
+    }).then((response) => response.data);
+  },
+
+  /**
+   * Delete a supplier
+   * @param {number} supplierId - Supplier ID
+   * @returns {Promise} Promise that resolves on success
+   */
+  deleteSupplier(supplierId) {
+    return this.request({
+      url: ApiConfig.baseURL + ApiConfig.endpoints.suppliers + "/" + supplierId,
+      method: "DELETE",
+    });
+  },
+
+  /**
    * Create a new purchasing transaction
    * @param {Object} purchasingData - Purchasing data (supplierId, details[])
    * @returns {Promise} Promise that resolves with created purchasing transaction
