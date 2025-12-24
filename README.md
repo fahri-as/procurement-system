@@ -223,29 +223,51 @@ Buka browser dan akses:
 
 ### File `.env`
 
+Salin file `env.example` menjadi `.env`, lalu sesuaikan nilainya:
+
+```bash
+# Windows (Command Prompt)
+copy env.example .env
+
+# Windows (PowerShell)
+Copy-Item env.example .env
+
+# Linux/macOS
+cp env.example .env
+```
+
 Berikut adalah konfigurasi lengkap yang perlu disesuaikan:
 
 ```env
 # ============================================
+# Konfigurasi lingkungan untuk aplikasi procurement-system
+# ============================================
+
+# ============================================
 # DATABASE CONFIGURATION
 # ============================================
-# Format DSN: user:password@tcp(host:port)/database?parseTime=true
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=procurement_system
 
-# Untuk MySQL tanpa password (development)
+# DSN (Data Source Name) - Connection string ke MySQL
+# Format: user:password@tcp(host:port)/dbname?parseTime=true
 DB_DSN=root:@tcp(localhost:3306)/procurement_system?parseTime=true
 
-# Untuk MySQL dengan password
+# Contoh dengan password:
 # DB_DSN=root:yourpassword@tcp(localhost:3306)/procurement_system?parseTime=true
 
-# Untuk remote database
+# Contoh untuk remote database:
 # DB_DSN=admin:secretpass@tcp(192.168.1.100:3306)/procurement_system?parseTime=true
 
 # ============================================
 # JWT CONFIGURATION
 # ============================================
 # Secret key untuk signing JWT token
-# WAJIB diganti di production!
-JWT_SECRET=your-super-secret-key-min-32-characters
+# ⚠️ WAJIB diganti di production dengan string yang lebih aman!
+JWT_SECRET=changeme
 
 # ============================================
 # SERVER CONFIGURATION
@@ -256,19 +278,27 @@ PORT=8080
 # ============================================
 # WEBHOOK (OPSIONAL)
 # ============================================
-# URL untuk mengirim notifikasi saat ada purchase order baru
+# URL untuk mengirim notifikasi otomatis saat ada purchase order baru
 # Kosongkan jika tidak menggunakan webhook
-WEBHOOK_URL=https://your-webhook-url.com/api/purchasing
+WEBHOOK_URL=https://webhook.site/your-unique-id/api/purchasing
 ```
 
 ### Penjelasan Konfigurasi
 
-| Variable      | Wajib? | Deskripsi                                           |
-| ------------- | ------ | --------------------------------------------------- |
-| `DB_DSN`      | ✅     | Connection string ke database MySQL                 |
-| `JWT_SECRET`  | ✅     | Secret key untuk JWT (min. 32 karakter)             |
-| `PORT`        | ❌     | Port server (default: 8080)                         |
-| `WEBHOOK_URL` | ❌     | URL webhook untuk notifikasi purchase order         |
+| Variable       | Wajib? | Default       | Deskripsi                                        |
+| -------------- | ------ | ------------- | ------------------------------------------------ |
+| `DB_HOST`      | ❌     | `localhost`   | Host database MySQL                              |
+| `DB_PORT`      | ❌     | `3306`        | Port database MySQL                              |
+| `DB_USER`      | ❌     | `root`        | Username database                                |
+| `DB_PASSWORD`  | ❌     | *(kosong)*    | Password database                                |
+| `DB_NAME`      | ❌     | -             | Nama database                                    |
+| `DB_DSN`       | ✅     | -             | Connection string lengkap ke MySQL               |
+| `JWT_SECRET`   | ✅     | `changeme`    | Secret key untuk JWT (ganti di production!)      |
+| `PORT`         | ❌     | `8080`        | Port server HTTP                                 |
+| `WEBHOOK_URL`  | ❌     | *(kosong)*    | URL webhook untuk notifikasi purchase order      |
+
+> [!NOTE]
+> Aplikasi menggunakan `DB_DSN` untuk koneksi database. Variabel `DB_HOST`, `DB_PORT`, dll. dapat digunakan sebagai referensi atau untuk konfigurasi tools lain.
 
 > [!CAUTION]
 > **Untuk Production:**
