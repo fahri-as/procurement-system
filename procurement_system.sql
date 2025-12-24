@@ -31,7 +31,8 @@ CREATE TABLE `items` (
   `id` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
-  `price` decimal(15,2) NOT NULL
+  `price` decimal(15,2) NOT NULL,
+  `supplier_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -96,7 +97,8 @@ CREATE TABLE `users` (
 -- Indexes for table `items`
 --
 ALTER TABLE `items`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_item_supplier` (`supplier_id`);
 
 --
 -- Indexes for table `purchasings`
@@ -178,6 +180,12 @@ ALTER TABLE `purchasings`
 ALTER TABLE `purchasing_details`
   ADD CONSTRAINT `fk_detail_item` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`),
   ADD CONSTRAINT `fk_detail_purchasing` FOREIGN KEY (`purchasing_id`) REFERENCES `purchasings` (`id`) ON DELETE CASCADE;
+  
+--
+-- Constraints for table `items`
+--
+ALTER TABLE `items`
+  ADD CONSTRAINT `fk_item_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -44,8 +44,8 @@ type PurchasingDetailInput struct {
 
 // PurchasingResponse represents the response after creating a purchasing transaction
 type PurchasingResponse struct {
-	Message    string              `json:"message"`
-	Purchasing models.Purchasing   `json:"purchasing"`
+	Message    string                    `json:"message"`
+	Purchasing models.Purchasing         `json:"purchasing"`
 	Details    []models.PurchasingDetail `json:"details"`
 }
 
@@ -89,6 +89,13 @@ func (pc *PurchasingController) Create(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 				"error": fmt.Sprintf("Item with ID %d not found", detailInput.ItemID),
+			})
+		}
+
+		// Ensure item belongs to the selected supplier
+		if item.SupplierID != req.SupplierID {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fmt.Sprintf("Item %d does not belong to supplier %d", detailInput.ItemID, req.SupplierID),
 			})
 		}
 
@@ -137,7 +144,7 @@ func (pc *PurchasingController) Create(c *fiber.Ctx) error {
 	// Reload purchasing with relationships for response
 	var purchasingWithRelations models.Purchasing
 	var detailsWithRelations []models.PurchasingDetail
-	
+
 	config.DB.Preload("Supplier").Preload("User").First(&purchasingWithRelations, purchasing.ID)
 	config.DB.Where("purchasing_id = ?", purchasing.ID).Preload("Item").Find(&detailsWithRelations)
 
@@ -167,4 +174,3 @@ func (pc *PurchasingController) Create(c *fiber.Ctx) error {
 		Details:    detailsWithRelations,
 	})
 }
-

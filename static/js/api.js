@@ -110,9 +110,10 @@ const ApiService = {
    * Get all items from API
    * @returns {Promise} Promise that resolves with items data
    */
-  getItems() {
+  getItems(supplierId) {
+    const query = supplierId ? `?supplierId=${supplierId}` : "";
     return this.request({
-      url: ApiConfig.baseURL + ApiConfig.endpoints.items,
+      url: ApiConfig.baseURL + ApiConfig.endpoints.items + query,
       method: "GET",
     }).then((response) => response.data || []);
   },

@@ -56,3 +56,4 @@ const user = Auth.getUser();
 - jQuery 3.7.1 (via CDN)
 - Tailwind CSS (via CDN)
 
+

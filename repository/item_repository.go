@@ -18,7 +18,7 @@ func NewItemRepository() *ItemRepository {
 // FindByID finds an item by ID
 func (r *ItemRepository) FindByID(id uint) (*models.Item, error) {
 	var item models.Item
-	result := config.DB.First(&item, id)
+	result := config.DB.Preload("Supplier").First(&item, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -34,7 +34,14 @@ func (r *ItemRepository) UpdateStockWithTx(tx *gorm.DB, itemID uint, qty int) er
 // GetAll retrieves all items
 func (r *ItemRepository) GetAll() ([]models.Item, error) {
 	var items []models.Item
-	result := config.DB.Find(&items)
+	result := config.DB.Preload("Supplier").Find(&items)
+	return items, result.Error
+}
+
+// GetAllBySupplier retrieves items for a specific supplier
+func (r *ItemRepository) GetAllBySupplier(supplierID uint) ([]models.Item, error) {
+	var items []models.Item
+	result := config.DB.Preload("Supplier").Where("supplier_id = ?", supplierID).Find(&items)
 	return items, result.Error
 }
 
@@ -55,4 +62,3 @@ func (r *ItemRepository) Delete(id uint) error {
 	result := config.DB.Delete(&models.Item{}, id)
 	return result.Error
 }
-

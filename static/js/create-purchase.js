@@ -4,274 +4,295 @@
  */
 
 const CreatePurchaseController = {
-    // Cart state
-    cart: [],
-    suppliers: [],
-    items: [],
+  // Cart state
+  cart: [],
+  suppliers: [],
+  items: [],
 
-    /**
-     * Initialize the page
-     */
-    init() {
-        // Check authentication
-        if (!Auth.isAuthenticated()) {
-            window.location.href = '/login.html';
-            return;
-        }
+  /**
+   * Initialize the page
+   */
+  init() {
+    // Check authentication
+    if (!Auth.isAuthenticated()) {
+      window.location.href = "/login.html";
+      return;
+    }
 
-        // Setup event listeners
-        this.setupEventListeners();
+    // Setup event listeners
+    this.setupEventListeners();
 
-        // Load initial data
-        this.loadData();
+    // Load initial data
+    this.loadData();
 
-        // Setup user info
-        this.setupUserInfo();
-    },
+    // Setup user info
+    this.setupUserInfo();
+  },
 
-    /**
-     * Setup event listeners
-     */
-    setupEventListeners() {
-        const self = this;
+  /**
+   * Setup event listeners
+   */
+  setupEventListeners() {
+    const self = this;
 
-        // Mobile menu toggle
-        $('#mobileMenuBtn').on('click', function() {
-            $('#sidebar').toggleClass('open');
-            $('#mobileMenuOverlay').toggleClass('hidden');
-        });
+    // Mobile menu toggle
+    $("#mobileMenuBtn").on("click", function () {
+      $("#sidebar").toggleClass("open");
+      $("#mobileMenuOverlay").toggleClass("hidden");
+    });
 
-        $('#mobileMenuOverlay').on('click', function() {
-            $('#sidebar').removeClass('open');
-            $(this).addClass('hidden');
-        });
+    $("#mobileMenuOverlay").on("click", function () {
+      $("#sidebar").removeClass("open");
+      $(this).addClass("hidden");
+    });
 
-        // Logout
-        $('#logoutBtn').on('click', function() {
-            Auth.logout();
-            window.location.href = '/login.html';
-        });
+    // Logout
+    $("#logoutBtn").on("click", function () {
+      Auth.logout();
+      window.location.href = "/login.html";
+    });
 
-        // Add to cart
-        $('#addToCartBtn').on('click', function() {
-            self.addToCart();
-        });
+    // Supplier change -> fetch items for supplier & reset cart
+    $("#supplierSelect").on("change", async function () {
+      const supplierId = parseInt($(this).val());
+      self.cart = [];
+      self.updateCartDisplay();
 
-        // Submit order
-        $('#submitOrderBtn').on('click', function() {
-            self.submitOrder();
-        });
+      if (supplierId) {
+        await self.loadItemsForSupplier(supplierId);
+      } else {
+        self.items = [];
+        self.populateItems();
+      }
+    });
 
-        // Success modal buttons
-        $('#createAnotherBtn').on('click', function() {
-            self.resetForm();
-            $('#successModal').addClass('hidden');
-        });
+    // Add to cart
+    $("#addToCartBtn").on("click", function () {
+      self.addToCart();
+    });
 
-        $('#goToDashboardBtn').on('click', function() {
-            window.location.href = '/dashboard.html';
-        });
+    // Submit order
+    $("#submitOrderBtn").on("click", function () {
+      self.submitOrder();
+    });
 
-        // Allow Enter key to add to cart
-        $('#qtyInput').on('keypress', function(e) {
-            if (e.which === 13) {
-                self.addToCart();
-            }
-        });
+    // Success modal buttons
+    $("#createAnotherBtn").on("click", function () {
+      self.resetForm();
+      $("#successModal").addClass("hidden");
+    });
 
-        // Event delegation for remove item buttons (works with dynamically created elements)
-        $(document).on('click', '.remove-item-btn', function(e) {
-            e.preventDefault();
-            const itemId = parseInt($(this).data('item-id'));
-            if (itemId) {
-                self.removeFromCart(itemId);
-            }
-        });
-    },
+    $("#goToDashboardBtn").on("click", function () {
+      window.location.href = "/dashboard.html";
+    });
 
-    /**
-     * Setup user info display
-     */
-    setupUserInfo() {
-        const user = Auth.getUser();
-        if (user) {
-            $('#userName').text(user.username || '-');
-            $('#userRole').text(user.role || '-');
-        }
-    },
+    // Allow Enter key to add to cart
+    $("#qtyInput").on("keypress", function (e) {
+      if (e.which === 13) {
+        self.addToCart();
+      }
+    });
 
-    /**
-     * Load suppliers and items data
-     */
-    async loadData() {
-        try {
-            // Load suppliers and items in parallel
-            const [suppliers, items] = await Promise.all([
-                ApiService.getSuppliers(),
-                ApiService.getItems()
-            ]);
+    // Event delegation for remove item buttons (works with dynamically created elements)
+    $(document).on("click", ".remove-item-btn", function (e) {
+      e.preventDefault();
+      const itemId = parseInt($(this).data("item-id"));
+      if (itemId) {
+        self.removeFromCart(itemId);
+      }
+    });
+  },
 
-            this.suppliers = suppliers;
-            this.items = items;
+  /**
+   * Setup user info display
+   */
+  setupUserInfo() {
+    const user = Auth.getUser();
+    if (user) {
+      $("#userName").text(user.username || "-");
+      $("#userRole").text(user.role || "-");
+    }
+  },
 
-            this.populateSuppliers();
-            this.populateItems();
-        } catch (error) {
-            Notification.error(
-                'Gagal Memuat Data',
-                error.message,
-                error.detail || ''
-            );
-        }
-    },
+  /**
+   * Load suppliers and items data
+   */
+  async loadData() {
+    try {
+      // Load suppliers first; items loaded when supplier selected
+      const suppliers = await ApiService.getSuppliers();
 
-    /**
-     * Populate supplier dropdown
-     */
-    populateSuppliers() {
-        const $select = $('#supplierSelect');
-        $select.empty();
-        $select.append('<option value="">-- Pilih Supplier --</option>');
+      this.suppliers = suppliers;
+      this.populateSuppliers();
+      this.populateItems(); // start empty
+    } catch (error) {
+      Notification.error("Gagal Memuat Data", error.message, error.detail || "");
+    }
+  },
 
-        this.suppliers.forEach(supplier => {
-            $select.append(`<option value="${supplier.id}">${supplier.name}</option>`);
-        });
-    },
+  /**
+   * Load items for a selected supplier
+   * @param {number} supplierId
+   */
+  async loadItemsForSupplier(supplierId) {
+    try {
+      const items = await ApiService.getItems(supplierId);
+      this.items = items;
+      this.populateItems();
+    } catch (error) {
+      this.items = [];
+      this.populateItems();
+      Notification.error("Gagal Memuat Item", error.message, error.detail || "");
+    }
+  },
 
-    /**
-     * Populate item dropdown
-     */
-    populateItems() {
-        const $select = $('#itemSelect');
-        $select.empty();
-        $select.append('<option value="">-- Pilih Item --</option>');
+  /**
+   * Populate supplier dropdown
+   */
+  populateSuppliers() {
+    const $select = $("#supplierSelect");
+    $select.empty();
+    $select.append('<option value="">-- Pilih Supplier --</option>');
 
-        this.items.forEach(item => {
-            const price = this.formatCurrency(item.price);
-            $select.append(`<option value="${item.id}" data-price="${item.price}">${item.name} - ${price}</option>`);
-        });
-    },
+    this.suppliers.forEach((supplier) => {
+      $select.append(`<option value="${supplier.id}">${supplier.name}</option>`);
+    });
+  },
 
-    /**
-     * Validate form inputs
-     * @returns {boolean} True if valid
-     */
-    validateForm() {
-        let isValid = true;
+  /**
+   * Populate item dropdown
+   */
+  populateItems() {
+    const $select = $("#itemSelect");
+    $select.empty();
+    $select.append('<option value="">-- Pilih Item --</option>');
 
-        // Reset errors
-        $('#supplierError, #itemError, #qtyError').addClass('hidden').text('');
+    this.items.forEach((item) => {
+      const price = this.formatCurrency(item.price);
+      $select.append(`<option value="${item.id}" data-price="${item.price}">${item.name} - ${price}</option>`);
+    });
+  },
 
-        // Validate supplier
-        const supplierId = $('#supplierSelect').val();
-        if (!supplierId) {
-            $('#supplierError').text('Supplier harus dipilih').removeClass('hidden');
-            isValid = false;
-        }
+  /**
+   * Validate form inputs
+   * @returns {boolean} True if valid
+   */
+  validateForm() {
+    let isValid = true;
 
-        // Validate item
-        const itemId = $('#itemSelect').val();
-        if (!itemId) {
-            $('#itemError').text('Item harus dipilih').removeClass('hidden');
-            isValid = false;
-        }
+    // Reset errors
+    $("#supplierError, #itemError, #qtyError").addClass("hidden").text("");
 
-        // Validate quantity
-        const qty = parseInt($('#qtyInput').val());
-        if (!qty || qty < 1) {
-            $('#qtyError').text('Quantity harus lebih dari 0').removeClass('hidden');
-            isValid = false;
-        }
+    // Validate supplier
+    const supplierId = $("#supplierSelect").val();
+    if (!supplierId) {
+      $("#supplierError").text("Supplier harus dipilih").removeClass("hidden");
+      isValid = false;
+    }
 
-        return isValid;
-    },
+    // Validate item
+    const itemId = $("#itemSelect").val();
+    if (!itemId) {
+      $("#itemError").text("Item harus dipilih").removeClass("hidden");
+      isValid = false;
+    }
 
-    /**
-     * Add item to cart
-     */
-    addToCart() {
-        // Validate form
-        if (!this.validateForm()) {
-            return;
-        }
+    // Validate quantity
+    const qty = parseInt($("#qtyInput").val());
+    if (!qty || qty < 1) {
+      $("#qtyError").text("Quantity harus lebih dari 0").removeClass("hidden");
+      isValid = false;
+    }
 
-        const itemId = parseInt($('#itemSelect').val());
-        const qty = parseInt($('#qtyInput').val());
-        const item = this.items.find(i => i.id === itemId);
+    return isValid;
+  },
 
-        if (!item) {
-            Notification.error('Item Tidak Ditemukan', 'Item yang dipilih tidak tersedia dalam sistem');
-            return;
-        }
+  /**
+   * Add item to cart
+   */
+  addToCart() {
+    // Validate form
+    if (!this.validateForm()) {
+      return;
+    }
 
-        // Check if item already in cart
-        const existingIndex = this.cart.findIndex(cartItem => cartItem.itemId === itemId);
-        
-        if (existingIndex >= 0) {
-            // Update quantity if item already exists
-            this.cart[existingIndex].qty += qty;
-        } else {
-            // Add new item to cart
-            this.cart.push({
-                itemId: itemId,
-                itemName: item.name,
-                price: parseFloat(item.price),
-                qty: qty,
-                subtotal: parseFloat(item.price) * qty
-            });
-        }
+    const itemId = parseInt($("#itemSelect").val());
+    const qty = parseInt($("#qtyInput").val());
+    const item = this.items.find((i) => i.id === itemId);
 
-        // Recalculate subtotal for updated item
-        if (existingIndex >= 0) {
-            this.cart[existingIndex].subtotal = this.cart[existingIndex].price * this.cart[existingIndex].qty;
-        }
+    if (!item) {
+      Notification.error("Item Tidak Ditemukan", "Item yang dipilih tidak tersedia dalam sistem");
+      return;
+    }
 
-        // Update UI
-        this.updateCartDisplay();
-        this.resetItemForm();
-    },
+    // Check if item already in cart
+    const existingIndex = this.cart.findIndex((cartItem) => cartItem.itemId === itemId);
 
-    /**
-     * Remove item from cart
-     * @param {number} itemId - Item ID to remove
-     */
-    removeFromCart(itemId) {
-        this.cart = this.cart.filter(item => item.itemId !== itemId);
-        this.updateCartDisplay();
-    },
+    if (existingIndex >= 0) {
+      // Update quantity if item already exists
+      this.cart[existingIndex].qty += qty;
+    } else {
+      // Add new item to cart
+      this.cart.push({
+        itemId: itemId,
+        itemName: item.name,
+        price: parseFloat(item.price),
+        qty: qty,
+        subtotal: parseFloat(item.price) * qty,
+      });
+    }
 
-    /**
-     * Update cart display
-     */
-    updateCartDisplay() {
-        const $cartTableBody = $('#cartTableBody');
-        const $cartTable = $('#cartTable');
-        const $emptyCartState = $('#emptyCartState');
-        const $submitSection = $('#submitSection');
+    // Recalculate subtotal for updated item
+    if (existingIndex >= 0) {
+      this.cart[existingIndex].subtotal = this.cart[existingIndex].price * this.cart[existingIndex].qty;
+    }
 
-        // Clear table body
-        $cartTableBody.empty();
+    // Update UI
+    this.updateCartDisplay();
+    this.resetItemForm();
+  },
 
-        if (this.cart.length === 0) {
-            // Show empty state
-            $cartTable.addClass('hidden');
-            $emptyCartState.removeClass('hidden');
-            $submitSection.addClass('hidden');
-            $('#grandTotal').text('Rp 0');
-        } else {
-            // Show cart table
-            $cartTable.removeClass('hidden');
-            $emptyCartState.addClass('hidden');
-            $submitSection.removeClass('hidden');
+  /**
+   * Remove item from cart
+   * @param {number} itemId - Item ID to remove
+   */
+  removeFromCart(itemId) {
+    this.cart = this.cart.filter((item) => item.itemId !== itemId);
+    this.updateCartDisplay();
+  },
 
-            // Calculate grand total
-            let grandTotal = 0;
+  /**
+   * Update cart display
+   */
+  updateCartDisplay() {
+    const $cartTableBody = $("#cartTableBody");
+    const $cartTable = $("#cartTable");
+    const $emptyCartState = $("#emptyCartState");
+    const $submitSection = $("#submitSection");
 
-            // Populate cart items
-            this.cart.forEach((item, index) => {
-                grandTotal += item.subtotal;
+    // Clear table body
+    $cartTableBody.empty();
 
-                const row = `
+    if (this.cart.length === 0) {
+      // Show empty state
+      $cartTable.addClass("hidden");
+      $emptyCartState.removeClass("hidden");
+      $submitSection.addClass("hidden");
+      $("#grandTotal").text("Rp 0");
+    } else {
+      // Show cart table
+      $cartTable.removeClass("hidden");
+      $emptyCartState.addClass("hidden");
+      $submitSection.removeClass("hidden");
+
+      // Calculate grand total
+      let grandTotal = 0;
+
+      // Populate cart items
+      this.cart.forEach((item, index) => {
+        grandTotal += item.subtotal;
+
+        const row = `
                     <tr class="fade-in">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${index + 1}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.itemName}</td>
@@ -290,63 +311,65 @@ const CreatePurchaseController = {
                         </td>
                     </tr>
                 `;
-                $cartTableBody.append(row);
-            });
+        $cartTableBody.append(row);
+      });
 
-            // Update grand total
-            $('#grandTotal').text(this.formatCurrency(grandTotal));
-        }
-    },
+      // Update grand total
+      $("#grandTotal").text(this.formatCurrency(grandTotal));
+    }
+  },
 
-    /**
-     * Reset item form
-     */
-    resetItemForm() {
-        $('#itemSelect').val('');
-        $('#qtyInput').val(1);
-        $('#itemError, #qtyError').addClass('hidden');
-    },
+  /**
+   * Reset item form
+   */
+  resetItemForm() {
+    $("#itemSelect").val("");
+    $("#qtyInput").val(1);
+    $("#itemError, #qtyError").addClass("hidden");
+  },
 
-    /**
-     * Reset entire form
-     */
-    resetForm() {
-        $('#supplierSelect').val('');
-        this.resetItemForm();
-        this.cart = [];
-        this.updateCartDisplay();
-        $('#supplierError').addClass('hidden');
-    },
+  /**
+   * Reset entire form
+   */
+  resetForm() {
+    $("#supplierSelect").val("");
+    this.resetItemForm();
+    this.cart = [];
+    this.updateCartDisplay();
+    $("#supplierError").addClass("hidden");
+    this.items = [];
+    this.populateItems();
+  },
 
-    /**
-     * Submit order to backend
-     */
-    async submitOrder() {
-        // Validate supplier is selected
-        const supplierId = $('#supplierSelect').val();
-        if (!supplierId) {
-            $('#supplierError').text('Supplier harus dipilih').removeClass('hidden');
-            $('#supplierSelect').focus();
-            return;
-        }
+  /**
+   * Submit order to backend
+   */
+  async submitOrder() {
+    // Validate supplier is selected
+    const supplierId = $("#supplierSelect").val();
+    if (!supplierId) {
+      $("#supplierError").text("Supplier harus dipilih").removeClass("hidden");
+      $("#supplierSelect").focus();
+      return;
+    }
 
-        // Validate cart is not empty
-        if (this.cart.length === 0) {
-            Notification.warning('Keranjang Kosong', 'Tambahkan minimal satu item ke keranjang sebelum submit order');
-            return;
-        }
+    // Validate cart is not empty
+    if (this.cart.length === 0) {
+      Notification.warning("Keranjang Kosong", "Tambahkan minimal satu item ke keranjang sebelum submit order");
+      return;
+    }
 
-        // Prepare request data
-        const requestData = {
-            supplierId: parseInt(supplierId),
-            details: this.cart.map(item => ({
-                itemId: item.itemId,
-                qty: item.qty
-            }))
-        };
+    // Prepare request data
+    const requestData = {
+      supplierId: parseInt(supplierId),
+      details: this.cart.map((item) => ({
+        itemId: item.itemId,
+        qty: item.qty,
+      })),
+    };
 
-        // Show loading state
-        $('#submitOrderBtn').prop('disabled', true).html(`
+    // Show loading state
+    $("#submitOrderBtn").prop("disabled", true).html(`
             <svg class="animate-spin h-5 w-5 mr-2 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -354,50 +377,44 @@ const CreatePurchaseController = {
             Memproses...
         `);
 
-        try {
-            const response = await ApiService.createPurchasing(requestData);
-            
-            // Show success modal
-            const grandTotal = this.formatCurrency(response.purchasing.grandTotal);
-            $('#successMessage').text(`Purchase order berhasil dibuat dengan total ${grandTotal}`);
-            $('#successModal').removeClass('hidden');
+    try {
+      const response = await ApiService.createPurchasing(requestData);
 
-            // Reset form
-            this.resetForm();
-        } catch (error) {
-            Notification.error(
-                'Gagal Membuat Purchase Order',
-                error.message,
-                error.detail || ''
-            );
-        } finally {
-            // Reset button state
-            $('#submitOrderBtn').prop('disabled', false).html(`
+      // Show success modal
+      const grandTotal = this.formatCurrency(response.purchasing.grandTotal);
+      $("#successMessage").text(`Purchase order berhasil dibuat dengan total ${grandTotal}`);
+      $("#successModal").removeClass("hidden");
+
+      // Reset form
+      this.resetForm();
+    } catch (error) {
+      Notification.error("Gagal Membuat Purchase Order", error.message, error.detail || "");
+    } finally {
+      // Reset button state
+      $("#submitOrderBtn").prop("disabled", false).html(`
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 Submit Order
             `);
-        }
-    },
+    }
+  },
 
-    /**
-     * Format number as currency
-     * @param {number} amount - Amount to format
-     * @returns {string} Formatted currency string
-     */
-    formatCurrency(amount) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
-    },
-
+  /**
+   * Format number as currency
+   * @param {number} amount - Amount to format
+   * @returns {string} Formatted currency string
+   */
+  formatCurrency(amount) {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(amount);
+  },
 };
 
 // Initialize when DOM is ready
-$(document).ready(function() {
-    CreatePurchaseController.init();
+$(document).ready(function () {
+  CreatePurchaseController.init();
 });
-
